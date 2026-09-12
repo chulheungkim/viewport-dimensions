@@ -1,5 +1,12 @@
 (() => {
   "use strict";
+  const motion = Object.freeze({
+    enterDuration: 240,
+    exitDuration: 180,
+    reducedDuration: 160,
+    easeOut: "cubic-bezier(0.23, 1, 0.32, 1)",
+  });
+  globalThis.viewportToolbarMotion = motion;
   globalThis.viewportToolbarStyles = `
     :host { color-scheme: light dark; }
     *, *::before, *::after { box-sizing: border-box; }
@@ -17,13 +24,29 @@
       border-radius: 18px; box-shadow: 0 24px 80px #00000024, 0 4px 16px #00000012;
       font: 13px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       letter-spacing: normal; text-align: left; direction: ltr; pointer-events: auto;
-      overflow: hidden; animation: arrive 180ms cubic-bezier(.2,.8,.2,1);
+      overflow: hidden; opacity: 1;
+      transform: translateX(var(--anchor-x, 0)) translateY(0) scale(1);
+      transform-origin: var(--origin-x) var(--origin-y);
+      transition:
+        opacity ${motion.enterDuration}ms ${motion.easeOut},
+        transform ${motion.enterDuration}ms ${motion.easeOut};
     }
-    .panel[data-position^="top-"] { top: 12px; }
-    .panel[data-position^="bottom-"] { bottom: 12px; }
-    .panel[data-position$="-left"] { left: 12px; }
-    .panel[data-position$="-right"] { right: 12px; }
-    .panel[data-position$="-center"] { left: 50%; transform: translateX(-50%); }
+    @starting-style {
+      .panel {
+        opacity: 0;
+        transform: translateX(var(--anchor-x, 0)) translateY(var(--motion-y)) scale(.98);
+      }
+    }
+    .panel.closing {
+      opacity: 0; pointer-events: none;
+      transform: translateX(var(--anchor-x, 0)) translateY(var(--motion-y)) scale(.98);
+      transition-duration: ${motion.exitDuration}ms;
+    }
+    .panel[data-position^="top-"] { top: 12px; --motion-y: -8px; --origin-y: 0%; }
+    .panel[data-position^="bottom-"] { bottom: 12px; --motion-y: 8px; --origin-y: 100%; }
+    .panel[data-position$="-left"] { left: 12px; --origin-x: 0%; }
+    .panel[data-position$="-right"] { right: 12px; --origin-x: 100%; }
+    .panel[data-position$="-center"] { left: 50%; --anchor-x: -50%; --origin-x: 50%; }
     button, input { font: inherit; color: inherit; }
     button { cursor: pointer; }
     button:disabled { opacity: .5; cursor: default; }
@@ -98,7 +121,6 @@
     .footnote { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding: 9px 18px; font-size: 9px; color: var(--muted); background: var(--soft); flex-shrink: 0; }
     kbd { font: inherit; }
     [hidden] { display: none !important; }
-    @keyframes arrive { from { opacity: 0; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
     @media (max-width: 480px) {
       .top { padding: 12px; gap: 7px; }
       .mark { display: none; }
@@ -119,7 +141,16 @@
     }
     @media (max-height: 590px) { .list { height: 200px; } .drawing { height: 105px; } .preview-detail { display: none; } }
     @media (max-height: 440px) { .panel { overflow-y: auto; } .workspace { min-height: 165px; } .list { height: 165px; } .drawing { height: 65px; } .footnote { display: none; } }
-    @media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .panel, .panel.closing {
+        transform: translateX(var(--anchor-x, 0));
+        transition-property: opacity;
+        transition-duration: ${motion.reducedDuration}ms;
+      }
+      @starting-style {
+        .panel { opacity: 0; transform: translateX(var(--anchor-x, 0)); }
+      }
+    }
     @media (forced-colors: active) { .tab[aria-selected="true"], .device[aria-pressed="true"], .chip[aria-pressed="true"] { outline: 2px solid Highlight; } }
   `;
 })();

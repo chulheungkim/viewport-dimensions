@@ -229,8 +229,12 @@ test(
       await page.keyboard.press("Escape");
       assert.equal(
         await page.locator("[data-viewport-dimensions-toolbar]").count(),
-        0,
+        1,
+        "toolbar remains mounted during its exit transition",
       );
+      await page.waitForSelector("[data-viewport-dimensions-toolbar]", {
+        state: "detached",
+      });
       assert.equal(
         await page
           .locator("#page-input")
@@ -251,8 +255,12 @@ test(
       await toggle();
       assert.equal(
         await page.locator("[data-viewport-dimensions-toolbar]").count(),
-        0,
+        1,
+        "shortcut close waits for the exit transition",
       );
+      await page.waitForSelector("[data-viewport-dimensions-toolbar]", {
+        state: "detached",
+      });
       await toggle();
       await until('!this.querySelector("#apply").disabled');
       await click(".tab:nth-child(1)");

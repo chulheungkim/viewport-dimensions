@@ -4,10 +4,12 @@ import test from "node:test";
 import vm from "node:vm";
 
 const context = vm.createContext({});
-vm.runInContext(
-  await readFile(new URL("../window-motion.js", import.meta.url), "utf8"),
-  context,
-);
+for (const file of ["window-motion.js", "toolbar-styles.js"]) {
+  vm.runInContext(
+    await readFile(new URL(`../${file}`, import.meta.url), "utf8"),
+    context,
+  );
+}
 const motion = context.viewportWindowMotion;
 const from = { left: 100, top: 50, width: 1500, height: 1000 };
 const to = { left: -200, top: 20, width: 375, height: 800 };
@@ -92,4 +94,21 @@ test("interpolation clamps progress and handles growing windows on negative-coor
   const middle = motion.interpolate(to, from, 0.5);
   for (const key of Object.keys(from))
     assert.equal(middle[key], Math.round((from[key] + to[key]) / 2));
+});
+
+test("toolbar motion uses asymmetric ease-out transitions and a gentler reduced-motion fade", () => {
+  assert.deepEqual(plain(context.viewportToolbarMotion), {
+    enterDuration: 240,
+    exitDuration: 180,
+    reducedDuration: 160,
+    easeOut: "cubic-bezier(0.23, 1, 0.32, 1)",
+  });
+  const styles = context.viewportToolbarStyles;
+  assert.match(styles, /@starting-style/);
+  assert.match(styles, /\.panel\.closing/);
+  assert.match(styles, /opacity 240ms cubic-bezier\(0\.23, 1, 0\.32, 1\)/);
+  assert.match(styles, /transition-duration: 180ms/);
+  assert.match(styles, /transform-origin: var\(--origin-x\) var\(--origin-y\)/);
+  assert.match(styles, /prefers-reduced-motion: reduce/);
+  assert.match(styles, /transition-property: opacity/);
 });

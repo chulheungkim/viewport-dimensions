@@ -1,6 +1,7 @@
 (() => {
   "use strict";
   const presets = globalThis.viewportDevicePresets;
+  const motion = globalThis.viewportToolbarMotion;
   const paths = {
     phone:
       '<rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M10 5h4m-3 14h2"/>',
@@ -46,6 +47,9 @@
     let busy = false;
     let revision = 0;
     let refreshTimer = null;
+    let closeTimer = null;
+    let closing = false;
+    let restoreFocusOnClose = false;
     let currentPosition = position;
 
     function selected() {
@@ -267,21 +271,55 @@
         }
       }
     }
-    function close(restoreFocus = true) {
+    function finishClose() {
       if (!host) return;
-      revision += 1;
+      clearTimeout(closeTimer);
+      closeTimer = null;
       clearTimeout(refreshTimer);
       host.remove();
       host = null;
       shadow = null;
       ui = null;
       busy = false;
+      closing = false;
       document.removeEventListener("pointerdown", outside, true);
       document.removeEventListener("keydown", escape, true);
-      onClose();
-      if (restoreFocus && previousFocus?.isConnected)
+      if (restoreFocusOnClose && previousFocus?.isConnected)
         previousFocus.focus({ preventScroll: true });
       previousFocus = null;
+      restoreFocusOnClose = false;
+    }
+    function close(restoreFocus = true) {
+      if (!host || !ui) return;
+      if (closing) {
+        restoreFocusOnClose ||= restoreFocus;
+        return;
+      }
+      closing = true;
+      restoreFocusOnClose = restoreFocus;
+      revision += 1;
+      clearTimeout(refreshTimer);
+      document.removeEventListener("pointerdown", outside, true);
+      document.removeEventListener("keydown", escape, true);
+      ui.panel.inert = true;
+      ui.panel.setAttribute("aria-hidden", "true");
+      ui.panel.classList.add("closing");
+      onClose();
+      closeTimer = setTimeout(finishClose, motion.exitDuration + 100);
+    }
+    function reopen() {
+      if (!host || !ui || !closing) return;
+      clearTimeout(closeTimer);
+      closeTimer = null;
+      closing = false;
+      restoreFocusOnClose = false;
+      ui.panel.inert = false;
+      ui.panel.removeAttribute("aria-hidden");
+      ui.panel.classList.remove("closing");
+      document.addEventListener("pointerdown", outside, true);
+      document.addEventListener("keydown", escape, true);
+      onOpen();
+      ui.search.focus({ preventScroll: true });
     }
     function outside(event) {
       if (!event.composedPath().includes(host)) close(false);
@@ -326,6 +364,14 @@
       panel.dataset.position = currentPosition;
       panel.setAttribute("role", "dialog");
       panel.setAttribute("aria-label", "Viewport device toolbar");
+      panel.addEventListener("transitionend", (event) => {
+        if (
+          closing &&
+          event.target === panel &&
+          event.propertyName === "opacity"
+        )
+          finishClose();
+      });
       // This static template contains no page content or stored values.
       panel.innerHTML = `
         <header class="top"><span class="mark"></span><div class="brand"><h2>Viewport Dimensions</h2><div class="eyebrow">A little perspective.</div></div><div class="live"><span class="dot"></span><span id="live"></span></div><button class="icon-button" id="close" aria-label="Close toolbar" title="Close (Escape)"></button></header>
@@ -462,8 +508,9 @@
     }
     return {
       toggle() {
-        if (host) close();
-        else open();
+        if (!host) open();
+        else if (closing) reopen();
+        else close();
       },
       close,
       isOpen() {
@@ -474,7 +521,7 @@
         if (ui) ui.panel.dataset.position = next;
       },
       resize() {
-        if (!host) return;
+        if (!host || closing) return;
         ui.live.textContent = `${window.innerWidth} × ${window.innerHeight}`;
         updatePreview();
         clearTimeout(refreshTimer);
@@ -482,7 +529,9 @@
       },
       destroy() {
         close(false);
+        finishClose();
         clearTimeout(refreshTimer);
+        clearTimeout(closeTimer);
       },
     };
   };

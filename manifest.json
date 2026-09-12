@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Viewport Dimensions",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Test responsive layouts on localhost by default, with opt-in support for external pages.",
   "permissions": ["storage"],
   "background": { "service_worker": "background.js" },

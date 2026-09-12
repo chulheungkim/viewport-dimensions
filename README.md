@@ -20,7 +20,8 @@ browser to a phone, tablet, laptop, or monitor reference size.
 - **Saved preferences** — display and activation settings persist across browser restarts.
 - **Localhost by default** — run on local development servers with an optional
   port allowlist, and explicitly opt in when testing external pages.
-- **Subtle motion** — smooth entrance and exit, with support for reduced motion.
+- **Subtle motion** — natural toolbar entrance and exit transitions, with a
+  gentler opacity-only variant for reduced motion.
 - **Device toolbar** — a compact light/dark interface with search, four categories,
   dimension previews, phone/tablet rotation, and a legacy filter.
 - **34 device presets** — recent Apple and Samsung devices, legacy baselines,
