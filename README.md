@@ -1,88 +1,113 @@
-# Viewport Dimensions
+<p align="center">
+  <img src="icons/logo.png" alt="Viewport Dimensions logo" width="128" height="128">
+</p>
 
-A standalone Chrome extension that displays **width × height in CSS pixels**
-while the viewport changes size. One box appears at the selected position,
-stays visible while resizing, then fades and slides out after a quiet period.
-The box is removed from the DOM after its exit finishes.
+<h1 align="center">Viewport Dimensions</h1>
 
-## Install or update
+<p align="center">Your viewport size, right when you need it.</p>
 
-1. Open `chrome://extensions` and enable **Developer mode**.
-2. Choose **Load unpacked** and select `/Users/chulheongkim/viewport-dimensions`, or
-   your clone of this repository. If already installed, click **Reload** instead.
-3. Refresh existing website tabs to replace the previous content script.
-4. Open **Viewport Dimensions** from Chrome's Extensions menu. Pin it for quick access.
-5. Pick a position and idle delay, then resize a website's browser window.
+Viewport Dimensions is a lightweight Chrome extension that shows your browser's
+viewport **width × height in CSS pixels** as you resize. A single, unobtrusive
+overlay appears in your chosen position, then smoothly disappears when you stop.
+Use it to check responsive layouts without opening DevTools.
 
-Keep the extension folder on disk. Moving it requires loading it from the new path.
+## Features
 
-The project was renamed from `viewport-width` to `viewport-dimensions`. If Chrome
-still points to the old folder, remove that unpacked entry and load this folder.
+- **Live dimensions** — see width and height together whenever either changes.
+- **Six positions** — place one overlay at the top or bottom, aligned left, center, or right.
+- **Adjustable hide delay** — keep dimensions visible for 1, 2, 3, or 5 seconds after resizing.
+- **Saved preferences** — your position and delay persist across browser restarts.
+- **Subtle motion** — smooth entrance and exit, with support for reduced motion.
+- **Out of the way** — the overlay never captures clicks or keyboard focus.
+- **Local only** — no accounts, analytics, or network requests.
 
-## Settings
+## Installation
 
-The toolbar popup has exactly six mutually exclusive positions:
+### Load from source
 
-| Top left    | Top center    | Top right    |
-| ----------- | ------------- | ------------ |
-| Bottom left | Bottom center | Bottom right |
+1. Download and extract this repository, or clone it:
 
-Only the selected position displays a box. The default is **top right**. The
-idle delay can be **1, 2, 3 or 5 seconds**, with **2 seconds** as the default.
-Changes save automatically to Chrome's local extension storage and apply to
-already open tabs without refreshing. Settings persist across browser restarts.
+   ```bash
+   git clone https://github.com/chulheungkim/viewport-dimensions.git
+   ```
 
-## Resize and motion
+2. Open `chrome://extensions` in Chrome.
+3. Turn on **Developer mode** in the top-right corner.
+4. Click **Load unpacked** and select the `viewport-dimensions` folder containing
+   `manifest.json`.
+5. Refresh any website tabs that were already open.
 
-- No box is mounted at page load. A change to either dimension triggers it.
-- Both dimensions update together from `window.innerWidth` and `window.innerHeight`.
-- Dimension changes update both values together and restart the idle timer,
-  without replaying the entrance animation.
-- Entrance uses a 180 ms fade and a short slide inward from the chosen edge.
-- After the idle delay, a 160 ms fade and slide out finishes before DOM removal.
-- Resizing during an exit reverses the transition and cancels pending removal.
-- Reduced-motion preferences remove the slide and fade, retaining the idle delay.
-- Switching away from a tab clears its overlay. Returning alone does not show it.
-- The box does not take focus or intercept pointer events. Shadow DOM isolates
-  its styles from the page. There is no page-wide mutation observer or polling.
+Keep the folder on your computer. If you move it, load the extension again from
+its new location.
 
-## Scope
+### Update an existing installation
 
-Runs on HTTP and HTTPS pages, including localhost, in the top frame only.
-Chrome internal pages, the Chrome Web Store and other protected pages cannot
-receive ordinary extension content scripts. `file://` pages are not included.
+Download the updated source or run `git pull` in your clone. Then click **Reload**
+on the extension's card at `chrome://extensions` and refresh your website tabs.
 
-Web pages receive viewport resize events, not native window-edge drag events.
-Maximizing a window, changing zoom or resizing docked DevTools can therefore
-also trigger the box. Dimensions describe the layout viewport, including
-scrollbars, rather than the outer window or physical display resolution.
+## Usage
 
-Fullscreen content and browser top-layer dialogs may cover the overlay. A site
-that removes injected nodes can interrupt it; the next dimension change restores
-the box. Uninstalling clears saved preferences.
+1. Open **Viewport Dimensions** from Chrome's Extensions menu. Pin it to the
+   toolbar for quick access.
+2. Choose an overlay position and a hide delay. Changes save automatically and
+   apply to open tabs.
+3. Resize the browser window on a website to see the current dimensions.
+
+| Setting    | Options                                                                   | Default   |
+| ---------- | ------------------------------------------------------------------------- | --------- |
+| Position   | Top left, top center, top right, bottom left, bottom center, bottom right | Top right |
+| Hide delay | 1, 2, 3, or 5 seconds                                                     | 2 seconds |
+
+The overlay stays hidden until the viewport changes size. Continued resizing
+keeps it visible; after the selected delay, it fades away and is removed from
+the page. Switching tabs also clears the overlay.
+
+## Privacy and permissions
+
+Viewport Dimensions makes no network requests and includes no analytics or
+tracking. It saves only your display preferences in Chrome's local extension
+storage; uninstalling the extension clears them.
+
+- **`storage`** saves your selected position and hide delay.
+- **HTTP and HTTPS content scripts** display the overlay on websites, including
+  localhost. They run only in the top frame.
+
+## Compatibility and limitations
+
+- Works on HTTP and HTTPS pages, including local development servers.
+- Chrome internal pages, the Chrome Web Store, and other protected pages do not
+  allow ordinary extension content scripts. Local `file://` pages are not included.
+- Measurements describe the layout viewport, including scrollbars, in CSS pixels.
+  They do not measure the outer browser window or physical display resolution.
+- Maximizing the window, changing zoom, or resizing docked DevTools can also
+  change the viewport and trigger the overlay.
+- Fullscreen content and browser top-layer dialogs may cover the overlay.
 
 ## Development
 
-The [GitHub repository](https://github.com/chulheungkim/viewport-dimensions) is
-private. The logo source and Chrome's 16, 32, 48 and 128 pixel PNG exports live in
-`icons/`. Both the extension card and toolbar use these assets. Artwork provenance
-and the generation prompt are recorded in `icons/README.md`.
+The extension uses plain JavaScript, HTML, and CSS with Manifest V3. No dependency
+installation or build step is required. Load the project folder directly in Chrome
+and reload the extension after making changes.
 
-No package installation or build step is needed. `preferences.js` owns defaults
-and settings validation; `resize-controller.js` owns the lifecycle; `content.js`
-renders it; `popup.html`, `popup.css` and `popup.js` provide the settings UI.
-The extension makes no network requests. Its only extension API permission is
-`storage`; content-script match patterns give access to HTTP and HTTPS pages.
-
-Run deterministic lifecycle and preference tests with Node.js:
+Run the deterministic lifecycle and preference tests with Node.js:
 
 ```bash
-node --test tests/*.test.mjs
+node --test tests/lifecycle.test.mjs
 ```
 
-## References
+| File                                                                         | Purpose                                           |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- |
+| [`manifest.json`](manifest.json)                                             | Extension metadata, permissions, and entry points |
+| [`content.js`](content.js)                                                   | Overlay rendering, motion, and page events        |
+| [`resize-controller.js`](resize-controller.js)                               | Resize lifecycle and visibility timers            |
+| [`preferences.js`](preferences.js)                                           | Defaults and saved-setting validation             |
+| [`popup.html`](popup.html), [`popup.css`](popup.css), [`popup.js`](popup.js) | Settings popup                                    |
+| [`tests/lifecycle.test.mjs`](tests/lifecycle.test.mjs)                       | Lifecycle and preference tests                    |
+| [`icons/`](icons/)                                                           | Logo and Chrome icon exports                      |
 
-- [Chrome content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
-- [Extension storage](https://developer.chrome.com/docs/extensions/reference/api/storage)
-- [Window resize events](https://developer.mozilla.org/en-US/docs/Web/API/Window/resize_event)
-- [Window.innerWidth](https://developer.mozilla.org/en-US/docs/Web/API/Window/innerWidth)
+The overlay uses Shadow DOM to isolate its styles from the page. Its lifecycle
+handles resizing during an exit, tab suspension, and reduced motion without
+polling or a page-wide mutation observer.
+
+Artwork provenance and the generation prompt are documented in
+[`icons/README.md`](icons/README.md).
