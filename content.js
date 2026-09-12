@@ -12,7 +12,10 @@
   let label = null;
   let disposed = false;
   let storageRevision = 0;
+  let active = false;
+  let currentSettings = preferences.defaults;
   const interactions = new Set();
+  const navigation = globalThis.navigation;
 
   function size() {
     return { width: window.innerWidth, height: window.innerHeight };
@@ -178,12 +181,23 @@
   });
 
   function configure(settings) {
-    controller.configure(settings);
-    toolbar.setPosition(settings.position);
+    currentSettings = preferences.normalize(settings);
+    const nextActive = preferences.isActiveUrl(location.href, currentSettings);
+    if (nextActive !== active) {
+      active = nextActive;
+      suspend();
+    }
+    controller.configure(currentSettings);
+    toolbar.setPosition(currentSettings.position);
+  }
+
+  function refreshActivation() {
+    configure(currentSettings);
+    return active;
   }
 
   function onResize() {
-    if (document.hidden) return;
+    if (document.hidden || !refreshActivation()) return;
     if (toolbar.isOpen()) {
       toolbar.resize();
       return;
@@ -200,12 +214,23 @@
   function onMessage(message, sender, respond) {
     if (!message || typeof message !== "object") return;
     if (message.type === "viewport:toggle") {
+      if (!refreshActivation()) {
+        respond({
+          ok: false,
+          error: "This page isn’t enabled. Add it in the extension settings.",
+        });
+        return;
+      }
       toolbar.toggle();
       respond({ ok: true });
     } else if (message.type === "viewport:bounds-changed") {
-      toolbar.resize();
+      if (refreshActivation()) toolbar.resize();
       respond({ ok: true });
     } else if (message.type === "viewport:measure") {
+      if (!refreshActivation()) {
+        respond({ active: false });
+        return;
+      }
       respond({
         ...size(),
         availWidth: screen.availWidth,
@@ -222,6 +247,10 @@
       return;
     storageRevision += 1;
     configure(preferences.normalize(changes[preferences.storageKey].newValue));
+  }
+
+  function onLocationChange() {
+    configure(currentSettings);
   }
 
   // Register first so a popup save cannot be overwritten by an older async read.
@@ -241,6 +270,8 @@
   chrome.runtime.onMessage.addListener(onMessage);
   window.addEventListener("pagehide", suspend);
   window.addEventListener("pageshow", suspend);
+  window.addEventListener("popstate", onLocationChange);
+  navigation?.addEventListener("navigatesuccess", onLocationChange);
   document.addEventListener("visibilitychange", suspend);
 
   // Reinjection within the same extension world replaces listeners and pending work.
@@ -253,6 +284,8 @@
     window.removeEventListener("resize", onResize);
     window.removeEventListener("pagehide", suspend);
     window.removeEventListener("pageshow", suspend);
+    window.removeEventListener("popstate", onLocationChange);
+    navigation?.removeEventListener("navigatesuccess", onLocationChange);
     document.removeEventListener("visibilitychange", suspend);
     chrome.storage.onChanged.removeListener(onStorageChanged);
   };

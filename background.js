@@ -254,12 +254,19 @@ async function toggleActive() {
   if (!tab?.id)
     return { ok: false, error: "Open a website to use the toolbar." };
   try {
-    await chrome.tabs.sendMessage(
+    const result = await chrome.tabs.sendMessage(
       tab.id,
       { type: "viewport:toggle" },
       { frameId: 0 },
     );
-    return { ok: true };
+    return result?.ok
+      ? { ok: true }
+      : {
+          ok: false,
+          error:
+            result?.error ||
+            "This page isn’t enabled. Add it in the extension settings.",
+        };
   } catch {
     return {
       ok: false,

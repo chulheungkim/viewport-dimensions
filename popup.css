@@ -5,7 +5,7 @@
   background: light-dark(#fdfdfc, #202124);
 }
 * { box-sizing: border-box; }
-body { width: 332px; margin: 0; padding: 20px; }
+body { width: 352px; margin: 0; padding: 20px; }
 h1 { margin: 0; font-size: 17px; line-height: 1.3; font-weight: 650; }
 .description { margin: 6px 0 18px; color: light-dark(#74776e, #a7aaa1); }
 #open-toolbar { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 11px 13px; border: 0; border-radius: 9px; background: light-dark(#45624d, #afc6ad); color: light-dark(#fff, #202124); font: 600 12px/1.5 system-ui, sans-serif; cursor: pointer; }
@@ -13,6 +13,7 @@ h1 { margin: 0; font-size: 17px; line-height: 1.3; font-weight: 650; }
 #open-toolbar:disabled { opacity: .5; cursor: default; }
 .shortcut-hint { margin: 9px 0 22px; font-size: 11px; line-height: 1.7; color: light-dark(#74776e, #a7aaa1); }
 fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
+.setting-group + .setting-group { margin-top: 24px; padding-top: 22px; border-top: 1px solid light-dark(#e3e5e1, #3d4148); }
 legend, .delay { display: block; padding: 0; margin-bottom: 9px; font-weight: 600; }
 .positions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .positions label { position: relative; cursor: pointer; }
@@ -41,11 +42,21 @@ legend, .delay { display: block; padding: 0; margin-bottom: 9px; font-weight: 60
 }
 .positions input:focus-visible + span { outline: 2px solid #789efb; outline-offset: 2px; }
 .delay { margin-top: 22px; }
-select {
+select, input[type="text"], textarea {
   width: 100%; min-height: 40px; padding: 7px 9px; border-radius: 7px;
   border: 1px solid light-dark(#d8dce3, #444a56);
   background: light-dark(#ffffff, #23262e); color: inherit; font: inherit;
 }
+textarea { min-height: 72px; resize: vertical; }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.switch-row > span { display: grid; gap: 1px; }
+.switch-row strong { font-weight: 600; }
+.switch-row small, .help { color: light-dark(#74776e, #a7aaa1); font-size: 11px; }
+.switch-row input { width: 17px; height: 17px; margin: 0; accent-color: #58745f; }
+.field-label { display: block; margin: 13px 0 6px; font-size: 11px; font-weight: 600; }
+.help { display: block; margin-top: 5px; line-height: 1.45; }
+.pages-switch { margin-top: 20px; }
+input[type="text"]:disabled, textarea:disabled { opacity: .5; cursor: not-allowed; }
 #status { min-height: 20px; margin: 14px 0 0; color: light-dark(#606774, #aab1bf); font-size: 12px; }
 #status[data-error="true"] { color: light-dark(#b12626, #ffaaaa); }
 fieldset:disabled { opacity: 0.55; }

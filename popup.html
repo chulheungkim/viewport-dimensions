@@ -15,7 +15,7 @@
     <button id="open-toolbar" type="button">Open device toolbar <span>↗</span></button>
     <p class="shortcut-hint">Or click the dimensions while resizing.<br><span id="shortcut-label">Alt + Shift + V</span> toggles the toolbar.</p>
     <form id="settings">
-      <fieldset disabled>
+      <fieldset class="setting-group" disabled>
         <legend>Position</legend>
         <div class="positions">
           <label><input type="radio" name="position" value="top-left"><span>Top left</span></label>
@@ -32,6 +32,30 @@
           <option value="3000">3 seconds</option>
           <option value="5000">5 seconds</option>
         </select>
+      </fieldset>
+      <fieldset class="setting-group activation" disabled>
+        <legend>Active on</legend>
+        <label class="switch-row">
+          <span>
+            <strong>Localhost</strong>
+            <small>Local development servers</small>
+          </span>
+          <input id="localhost-enabled" name="localhostEnabled" type="checkbox">
+        </label>
+        <label class="field-label" for="localhost-ports">Ports</label>
+        <input id="localhost-ports" name="localhostPorts" type="text" inputmode="numeric" placeholder="Any port" aria-describedby="localhost-help">
+        <small id="localhost-help" class="help">Comma-separated, for example 3000, 5173. Leave empty for any port.</small>
+
+        <label class="switch-row pages-switch">
+          <span>
+            <strong>Specific pages</strong>
+            <small>External services and landing pages</small>
+          </span>
+          <input id="pages-enabled" name="pagesEnabled" type="checkbox">
+        </label>
+        <label class="field-label" for="page-urls">Page URLs</label>
+        <textarea id="page-urls" name="pageUrls" rows="3" placeholder="https://example.com/pricing" aria-describedby="pages-help"></textarea>
+        <small id="pages-help" class="help">One full URL per line. Query strings, fragments, and a trailing slash are ignored.</small>
       </fieldset>
     </form>
     <p id="status" role="status">Loading settings…</p>

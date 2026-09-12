@@ -3,13 +3,21 @@
 
   const preferences = globalThis.viewportDimensionsPreferences;
   const form = document.querySelector("#settings");
-  const fieldset = document.querySelector("fieldset");
+  const fieldsets = document.querySelectorAll("fieldset");
   const delay = document.querySelector("#hide-delay");
+  const localhostEnabled = document.querySelector("#localhost-enabled");
+  const localhostPorts = document.querySelector("#localhost-ports");
+  const pagesEnabled = document.querySelector("#pages-enabled");
+  const pageUrls = document.querySelector("#page-urls");
   const status = document.querySelector("#status");
   const openToolbar = document.querySelector("#open-toolbar");
+  // Queue rapid selections in order so an older storage write cannot win last.
+  let pendingSave = Promise.resolve();
+  let revision = 0;
   openToolbar?.addEventListener("click", async () => {
     openToolbar.disabled = true;
     try {
+      await pendingSave;
       const result = await chrome.runtime.sendMessage({
         type: "viewport:open-active",
       });
@@ -39,8 +47,12 @@
     .catch(() => {});
   if (
     !(form instanceof HTMLFormElement) ||
-    !(fieldset instanceof HTMLFieldSetElement) ||
+    fieldsets.length === 0 ||
     !(delay instanceof HTMLSelectElement) ||
+    !(localhostEnabled instanceof HTMLInputElement) ||
+    !(localhostPorts instanceof HTMLInputElement) ||
+    !(pagesEnabled instanceof HTMLInputElement) ||
+    !(pageUrls instanceof HTMLTextAreaElement) ||
     !(status instanceof HTMLElement)
   )
     return;
@@ -63,18 +75,31 @@
       );
     }
     delay.value = String(settings.hideDelayMs);
+    localhostEnabled.checked = settings.localhostEnabled;
+    localhostPorts.value = settings.localhostPorts.join(", ");
+    pagesEnabled.checked = settings.pagesEnabled;
+    pageUrls.value = settings.pageUrls.join("\n");
+    localhostPorts.disabled = !settings.localhostEnabled;
+    pageUrls.disabled = !settings.pagesEnabled;
   }
 
-  // Queue rapid selections in order so an older storage write cannot win last.
-  let pendingSave = Promise.resolve();
-  let revision = 0;
-  form.addEventListener("submit", (event) => event.preventDefault());
-  form.addEventListener("change", () => {
+  function readSettings() {
     const data = new FormData(form);
-    const settings = preferences.normalize({
+    return preferences.normalize({
       position: data.get("position"),
       hideDelayMs: Number(data.get("hideDelayMs")),
+      localhostEnabled: localhostEnabled.checked,
+      localhostPorts: localhostPorts.value,
+      pagesEnabled: pagesEnabled.checked,
+      pageUrls: pageUrls.value,
     });
+  }
+
+  form.addEventListener("submit", (event) => event.preventDefault());
+  form.addEventListener("change", () => {
+    const settings = readSettings();
+    localhostPorts.disabled = !settings.localhostEnabled;
+    pageUrls.disabled = !settings.pagesEnabled;
     const saveRevision = ++revision;
     status.textContent = "Saving…";
     delete status.dataset.error;
@@ -86,7 +111,7 @@
       )
       .then(() => {
         if (saveRevision === revision)
-          status.textContent = "Saved. Resize a page to try it.";
+          status.textContent = "Saved. Matching pages are active now.";
       })
       .catch(() => {
         if (saveRevision !== revision) return;
@@ -99,12 +124,12 @@
     .get(preferences.storageKey)
     .then((stored) => {
       showSettings(preferences.normalize(stored[preferences.storageKey]));
-      fieldset.disabled = false;
-      status.textContent = "Resize a page to try it.";
+      for (const fieldset of fieldsets) fieldset.disabled = false;
+      status.textContent = "Matching pages are active now.";
     })
     .catch(() => {
       showSettings(preferences.defaults);
-      fieldset.disabled = false;
+      for (const fieldset of fieldsets) fieldset.disabled = false;
       status.textContent = "Couldn’t load settings. Showing defaults.";
       status.dataset.error = "true";
     });

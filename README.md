@@ -17,7 +17,9 @@ browser to a phone, tablet, laptop, or monitor reference size.
 - **Live dimensions** — see width and height together whenever either changes.
 - **Six positions** — place one overlay at the top or bottom, aligned left, center, or right.
 - **Adjustable hide delay** — keep dimensions visible for 1, 2, 3, or 5 seconds after resizing.
-- **Saved preferences** — your position and delay persist across browser restarts.
+- **Saved preferences** — display and activation settings persist across browser restarts.
+- **Targeted activation** — run on localhost with an optional port allowlist,
+  on selected external pages, or both.
 - **Subtle motion** — smooth entrance and exit, with support for reduced motion.
 - **Device toolbar** — a compact light/dark interface with search, four categories,
   dimension previews, phone/tablet rotation, and a legacy filter.
@@ -65,8 +67,8 @@ on the extension's card at `chrome://extensions` and refresh your website tabs.
 
 1. Open **Viewport Dimensions** from Chrome's Extensions menu. Pin it to the
    toolbar for quick access.
-2. Choose an overlay position and a hide delay. Changes save automatically and
-   apply to open tabs.
+2. Choose an overlay position, hide delay, and where the extension should be
+   active. Changes save automatically and apply to open tabs.
 3. Resize the browser window on a website to see the current dimensions.
 4. Click the dimensions or press **Alt+Shift+V** to toggle the device toolbar.
    You can also choose **Open device toolbar** in the extension popup.
@@ -87,6 +89,14 @@ arrow keys in categories and device lists, and Escape to close.
 | ---------- | ------------------------------------------------------------------------- | --------- |
 | Position   | Top left, top center, top right, bottom left, bottom center, bottom right | Top right |
 | Hide delay | 1, 2, 3, or 5 seconds                                                     | 2 seconds |
+| Localhost  | Any port, or a comma-separated port allowlist                             | Any port  |
+| Pages      | One exact HTTP(S) page URL per line                                       | Disabled  |
+
+Localhost includes `localhost`, subdomains such as `app.localhost`, and the
+`127.0.0.1`, `0.0.0.0`, and `::1` loopback addresses. Page matching ignores
+query strings, fragments, and a trailing slash, but keeps the scheme, host,
+port, and path exact. This lets a configured landing page keep working with
+campaign parameters without enabling the extension across the entire site.
 
 The badge stays hidden until the viewport changes size. Continued resizing,
 hovering, or focusing it keeps it visible; after the selected delay, it fades
@@ -96,23 +106,24 @@ clears both surfaces. Position settings apply to both the badge and toolbar.
 ## Privacy and permissions
 
 Viewport Dimensions makes no network requests and includes no analytics or
-tracking. It saves only your display preferences in Chrome's local extension
-storage; uninstalling the extension clears them. Original window bounds are
+tracking. It saves your display and activation preferences in Chrome's local
+extension storage; uninstalling the extension clears them. Original window bounds are
 stored temporarily in session storage so Restore survives service-worker restarts.
 Mobile preview return locations also live in session storage and are removed
 when returning or closing the tab. Closing a mobile window closes its tab, just
 like closing a normal browser window; use **Return to browser** to keep it open.
 
-- **`storage`** saves your selected position and hide delay.
+- **`storage`** saves your selected position, hide delay, localhost ports, and
+  page allowlist.
 - The service worker uses Chrome's window and tab APIs to measure and resize the
   current window. No `debugger`, browsing-history, or additional host permission
   is requested.
-- **HTTP and HTTPS content scripts** display the overlay on websites, including
-  localhost. They run only in the top frame.
+- **HTTP and HTTPS content scripts** run only in the top frame and remain inert
+  unless the current URL matches the activation settings.
 
 ## Compatibility and limitations
 
-- Works on HTTP and HTTPS pages, including local development servers.
+- Works on configured HTTP and HTTPS pages, including local development servers.
 - Chrome internal pages, the Chrome Web Store, and other protected pages do not
   allow ordinary extension content scripts. Local `file://` pages are not included.
 - Measurements describe the layout viewport, including scrollbars, in CSS pixels.

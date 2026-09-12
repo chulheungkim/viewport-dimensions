@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
-const context = vm.createContext({});
+const context = vm.createContext({ URL });
 for (const name of ["preferences.js", "resize-controller.js"]) {
   vm.runInContext(
     await readFile(new URL(`../${name}`, import.meta.url), "utf8"),
@@ -246,7 +246,82 @@ test("only six positions are valid, and corrupt stored values fall back safely",
       {
         position: "top-right",
         hideDelayMs: 2000,
+        localhostEnabled: true,
+        localhostPorts: [],
+        pagesEnabled: false,
+        pageUrls: [],
       },
     );
   }
+});
+
+test("activation settings normalize local ports and stable page URLs", () => {
+  const preferences = context.viewportDimensionsPreferences;
+  assert.deepEqual(
+    JSON.parse(
+      JSON.stringify(
+        preferences.normalize({
+          localhostEnabled: true,
+          localhostPorts: "5173, 3000 5173, 0, 65536, nope",
+          pagesEnabled: true,
+          pageUrls:
+            "https://Example.com/pricing/?campaign=test#hero\ninvalid\nhttps://example.com/pricing",
+        }),
+      ),
+    ),
+    {
+      position: "top-right",
+      hideDelayMs: 2000,
+      localhostEnabled: true,
+      localhostPorts: [3000, 5173],
+      pagesEnabled: true,
+      pageUrls: ["https://example.com/pricing"],
+    },
+  );
+});
+
+test("activation matches configured localhost ports and exact external pages", () => {
+  const preferences = context.viewportDimensionsPreferences;
+  const settings = {
+    localhostEnabled: true,
+    localhostPorts: [3000, 5173],
+    pagesEnabled: true,
+    pageUrls: ["https://example.com/pricing"],
+  };
+  for (const url of [
+    "http://localhost:3000/anything",
+    "http://app.localhost:5173/",
+    "http://127.0.0.1:3000/",
+    "http://[::1]:5173/",
+    "https://example.com/pricing?campaign=test#hero",
+    "https://example.com/pricing/",
+  ]) {
+    assert.equal(preferences.isActiveUrl(url, settings), true, url);
+  }
+  for (const url of [
+    "http://localhost:4173/",
+    "https://example.com/",
+    "https://example.com/pricing/details",
+    "chrome://extensions",
+  ]) {
+    assert.equal(preferences.isActiveUrl(url, settings), false, url);
+  }
+});
+
+test("an empty localhost port list allows every local development port", () => {
+  const preferences = context.viewportDimensionsPreferences;
+  assert.equal(
+    preferences.isActiveUrl("http://localhost:4321/", {
+      localhostEnabled: true,
+      localhostPorts: [],
+    }),
+    true,
+  );
+  assert.equal(
+    preferences.isActiveUrl("http://localhost:4321/", {
+      localhostEnabled: false,
+      localhostPorts: [],
+    }),
+    false,
+  );
 });
