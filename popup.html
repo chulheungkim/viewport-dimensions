@@ -46,16 +46,13 @@
         <input id="localhost-ports" name="localhostPorts" type="text" inputmode="numeric" placeholder="Any port" aria-describedby="localhost-help">
         <small id="localhost-help" class="help">Comma-separated, for example 3000, 5173. Leave empty for any port.</small>
 
-        <label class="switch-row pages-switch">
+        <label class="switch-row external-switch">
           <span>
-            <strong>Specific pages</strong>
-            <small>External services and landing pages</small>
+            <strong>Activate on external pages</strong>
+            <small>All non-local HTTP and HTTPS pages</small>
           </span>
-          <input id="pages-enabled" name="pagesEnabled" type="checkbox">
+          <input id="external-pages-enabled" name="externalPagesEnabled" type="checkbox">
         </label>
-        <label class="field-label" for="page-urls">Page URLs</label>
-        <textarea id="page-urls" name="pageUrls" rows="3" placeholder="https://example.com/pricing" aria-describedby="pages-help"></textarea>
-        <small id="pages-help" class="help">One full URL per line. Query strings, fragments, and a trailing slash are ignored.</small>
       </fieldset>
     </form>
     <p id="status" role="status">Loading settings…</p>

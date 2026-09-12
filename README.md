@@ -18,8 +18,8 @@ browser to a phone, tablet, laptop, or monitor reference size.
 - **Six positions** — place one overlay at the top or bottom, aligned left, center, or right.
 - **Adjustable hide delay** — keep dimensions visible for 1, 2, 3, or 5 seconds after resizing.
 - **Saved preferences** — display and activation settings persist across browser restarts.
-- **Targeted activation** — run on localhost with an optional port allowlist,
-  on selected external pages, or both.
+- **Localhost by default** — run on local development servers with an optional
+  port allowlist, and explicitly opt in when testing external pages.
 - **Subtle motion** — smooth entrance and exit, with support for reduced motion.
 - **Device toolbar** — a compact light/dark interface with search, four categories,
   dimension previews, phone/tablet rotation, and a legacy filter.
@@ -85,18 +85,17 @@ Change the shortcut at `chrome://extensions/shortcuts` if another extension or
 your operating system already uses it. The toolbar also supports tab navigation,
 arrow keys in categories and device lists, and Escape to close.
 
-| Setting    | Options                                                                   | Default   |
-| ---------- | ------------------------------------------------------------------------- | --------- |
-| Position   | Top left, top center, top right, bottom left, bottom center, bottom right | Top right |
-| Hide delay | 1, 2, 3, or 5 seconds                                                     | 2 seconds |
-| Localhost  | Any port, or a comma-separated port allowlist                             | Any port  |
-| Pages      | One exact HTTP(S) page URL per line                                       | Disabled  |
+| Setting        | Options                                                                   | Default   |
+| -------------- | ------------------------------------------------------------------------- | --------- |
+| Position       | Top left, top center, top right, bottom left, bottom center, bottom right | Top right |
+| Hide delay     | 1, 2, 3, or 5 seconds                                                     | 2 seconds |
+| Localhost      | Any port, or a comma-separated port allowlist                             | Any port  |
+| External pages | All non-local HTTP(S) pages                                               | Disabled  |
 
 Localhost includes `localhost`, subdomains such as `app.localhost`, and the
-`127.0.0.1`, `0.0.0.0`, and `::1` loopback addresses. Page matching ignores
-query strings, fragments, and a trailing slash, but keeps the scheme, host,
-port, and path exact. This lets a configured landing page keep working with
-campaign parameters without enabling the extension across the entire site.
+`127.0.0.1`, `0.0.0.0`, and `::1` loopback addresses. Turn on **Activate on
+external pages** only when you want to test responsive layouts on deployed
+services or landing pages. Turning it off immediately makes those pages inert.
 
 The badge stays hidden until the viewport changes size. Continued resizing,
 hovering, or focusing it keeps it visible; after the selected delay, it fades
@@ -107,14 +106,15 @@ clears both surfaces. Position settings apply to both the badge and toolbar.
 
 Viewport Dimensions makes no network requests and includes no analytics or
 tracking. It saves your display and activation preferences in Chrome's local
-extension storage; uninstalling the extension clears them. Original window bounds are
-stored temporarily in session storage so Restore survives service-worker restarts.
+extension storage; uninstalling the extension clears them. Original window
+bounds are stored temporarily in session storage so Restore survives
+service-worker restarts.
 Mobile preview return locations also live in session storage and are removed
 when returning or closing the tab. Closing a mobile window closes its tab, just
 like closing a normal browser window; use **Return to browser** to keep it open.
 
 - **`storage`** saves your selected position, hide delay, localhost ports, and
-  page allowlist.
+  external-page activation preference.
 - The service worker uses Chrome's window and tab APIs to measure and resize the
   current window. No `debugger`, browsing-history, or additional host permission
   is requested.

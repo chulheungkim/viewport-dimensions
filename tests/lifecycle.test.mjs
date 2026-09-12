@@ -248,14 +248,13 @@ test("only six positions are valid, and corrupt stored values fall back safely",
         hideDelayMs: 2000,
         localhostEnabled: true,
         localhostPorts: [],
-        pagesEnabled: false,
-        pageUrls: [],
+        externalPagesEnabled: false,
       },
     );
   }
 });
 
-test("activation settings normalize local ports and stable page URLs", () => {
+test("activation settings normalize local ports and external opt-in", () => {
   const preferences = context.viewportDimensionsPreferences;
   assert.deepEqual(
     JSON.parse(
@@ -263,9 +262,7 @@ test("activation settings normalize local ports and stable page URLs", () => {
         preferences.normalize({
           localhostEnabled: true,
           localhostPorts: "5173, 3000 5173, 0, 65536, nope",
-          pagesEnabled: true,
-          pageUrls:
-            "https://Example.com/pricing/?campaign=test#hero\ninvalid\nhttps://example.com/pricing",
+          externalPagesEnabled: true,
         }),
       ),
     ),
@@ -274,36 +271,29 @@ test("activation settings normalize local ports and stable page URLs", () => {
       hideDelayMs: 2000,
       localhostEnabled: true,
       localhostPorts: [3000, 5173],
-      pagesEnabled: true,
-      pageUrls: ["https://example.com/pricing"],
+      externalPagesEnabled: true,
     },
   );
 });
 
-test("activation matches configured localhost ports and exact external pages", () => {
+test("activation matches configured localhost ports and external opt-in", () => {
   const preferences = context.viewportDimensionsPreferences;
   const settings = {
     localhostEnabled: true,
     localhostPorts: [3000, 5173],
-    pagesEnabled: true,
-    pageUrls: ["https://example.com/pricing"],
+    externalPagesEnabled: true,
   };
   for (const url of [
     "http://localhost:3000/anything",
     "http://app.localhost:5173/",
     "http://127.0.0.1:3000/",
     "http://[::1]:5173/",
-    "https://example.com/pricing?campaign=test#hero",
-    "https://example.com/pricing/",
+    "https://example.com/",
+    "https://service.example.org/deployed/page?campaign=test#hero",
   ]) {
     assert.equal(preferences.isActiveUrl(url, settings), true, url);
   }
-  for (const url of [
-    "http://localhost:4173/",
-    "https://example.com/",
-    "https://example.com/pricing/details",
-    "chrome://extensions",
-  ]) {
+  for (const url of ["http://localhost:4173/", "chrome://extensions"]) {
     assert.equal(preferences.isActiveUrl(url, settings), false, url);
   }
 });
@@ -321,6 +311,30 @@ test("an empty localhost port list allows every local development port", () => {
     preferences.isActiveUrl("http://localhost:4321/", {
       localhostEnabled: false,
       localhostPorts: [],
+    }),
+    false,
+  );
+});
+
+test("external pages remain disabled by default and can be enabled globally", () => {
+  const preferences = context.viewportDimensionsPreferences;
+  assert.equal(
+    preferences.isActiveUrl(
+      "https://example.com/landing",
+      preferences.defaults,
+    ),
+    false,
+  );
+  assert.equal(
+    preferences.isActiveUrl("https://example.com/landing", {
+      externalPagesEnabled: true,
+    }),
+    true,
+  );
+  assert.equal(
+    preferences.isActiveUrl("http://localhost:3000/", {
+      localhostEnabled: false,
+      externalPagesEnabled: true,
     }),
     false,
   );

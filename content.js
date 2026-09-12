@@ -217,7 +217,8 @@
       if (!refreshActivation()) {
         respond({
           ok: false,
-          error: "This page isn’t enabled. Add it in the extension settings.",
+          error:
+            "This page isn’t enabled. Enable it in the extension settings.",
         });
         return;
       }

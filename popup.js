@@ -7,8 +7,9 @@
   const delay = document.querySelector("#hide-delay");
   const localhostEnabled = document.querySelector("#localhost-enabled");
   const localhostPorts = document.querySelector("#localhost-ports");
-  const pagesEnabled = document.querySelector("#pages-enabled");
-  const pageUrls = document.querySelector("#page-urls");
+  const externalPagesEnabled = document.querySelector(
+    "#external-pages-enabled",
+  );
   const status = document.querySelector("#status");
   const openToolbar = document.querySelector("#open-toolbar");
   // Queue rapid selections in order so an older storage write cannot win last.
@@ -51,8 +52,7 @@
     !(delay instanceof HTMLSelectElement) ||
     !(localhostEnabled instanceof HTMLInputElement) ||
     !(localhostPorts instanceof HTMLInputElement) ||
-    !(pagesEnabled instanceof HTMLInputElement) ||
-    !(pageUrls instanceof HTMLTextAreaElement) ||
+    !(externalPagesEnabled instanceof HTMLInputElement) ||
     !(status instanceof HTMLElement)
   )
     return;
@@ -77,10 +77,8 @@
     delay.value = String(settings.hideDelayMs);
     localhostEnabled.checked = settings.localhostEnabled;
     localhostPorts.value = settings.localhostPorts.join(", ");
-    pagesEnabled.checked = settings.pagesEnabled;
-    pageUrls.value = settings.pageUrls.join("\n");
+    externalPagesEnabled.checked = settings.externalPagesEnabled;
     localhostPorts.disabled = !settings.localhostEnabled;
-    pageUrls.disabled = !settings.pagesEnabled;
   }
 
   function readSettings() {
@@ -90,8 +88,7 @@
       hideDelayMs: Number(data.get("hideDelayMs")),
       localhostEnabled: localhostEnabled.checked,
       localhostPorts: localhostPorts.value,
-      pagesEnabled: pagesEnabled.checked,
-      pageUrls: pageUrls.value,
+      externalPagesEnabled: externalPagesEnabled.checked,
     });
   }
 
@@ -99,7 +96,6 @@
   form.addEventListener("change", () => {
     const settings = readSettings();
     localhostPorts.disabled = !settings.localhostEnabled;
-    pageUrls.disabled = !settings.pagesEnabled;
     const saveRevision = ++revision;
     status.textContent = "Saving…";
     delete status.dataset.error;
@@ -110,8 +106,7 @@
         }),
       )
       .then(() => {
-        if (saveRevision === revision)
-          status.textContent = "Saved. Matching pages are active now.";
+        if (saveRevision === revision) status.textContent = "Settings saved.";
       })
       .catch(() => {
         if (saveRevision !== revision) return;
@@ -125,7 +120,7 @@
     .then((stored) => {
       showSettings(preferences.normalize(stored[preferences.storageKey]));
       for (const fieldset of fieldsets) fieldset.disabled = false;
-      status.textContent = "Matching pages are active now.";
+      status.textContent = "Settings loaded.";
     })
     .catch(() => {
       showSettings(preferences.defaults);

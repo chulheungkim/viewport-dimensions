@@ -42,12 +42,11 @@ legend, .delay { display: block; padding: 0; margin-bottom: 9px; font-weight: 60
 }
 .positions input:focus-visible + span { outline: 2px solid #789efb; outline-offset: 2px; }
 .delay { margin-top: 22px; }
-select, input[type="text"], textarea {
+select, input[type="text"] {
   width: 100%; min-height: 40px; padding: 7px 9px; border-radius: 7px;
   border: 1px solid light-dark(#d8dce3, #444a56);
   background: light-dark(#ffffff, #23262e); color: inherit; font: inherit;
 }
-textarea { min-height: 72px; resize: vertical; }
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
 .switch-row > span { display: grid; gap: 1px; }
 .switch-row strong { font-weight: 600; }
@@ -55,8 +54,8 @@ textarea { min-height: 72px; resize: vertical; }
 .switch-row input { width: 17px; height: 17px; margin: 0; accent-color: #58745f; }
 .field-label { display: block; margin: 13px 0 6px; font-size: 11px; font-weight: 600; }
 .help { display: block; margin-top: 5px; line-height: 1.45; }
-.pages-switch { margin-top: 20px; }
-input[type="text"]:disabled, textarea:disabled { opacity: .5; cursor: not-allowed; }
+.external-switch { margin-top: 20px; }
+input[type="text"]:disabled { opacity: .5; cursor: not-allowed; }
 #status { min-height: 20px; margin: 14px 0 0; color: light-dark(#606774, #aab1bf); font-size: 12px; }
 #status[data-error="true"] { color: light-dark(#b12626, #ffaaaa); }
 fieldset:disabled { opacity: 0.55; }

@@ -265,7 +265,7 @@ async function toggleActive() {
           ok: false,
           error:
             result?.error ||
-            "This page isn’t enabled. Add it in the extension settings.",
+            "This page isn’t enabled. Enable it in the extension settings.",
         };
   } catch {
     return {

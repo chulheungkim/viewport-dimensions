@@ -14,8 +14,7 @@
     hideDelayMs: 2000,
     localhostEnabled: true,
     localhostPorts: Object.freeze([]),
-    pagesEnabled: false,
-    pageUrls: Object.freeze([]),
+    externalPagesEnabled: false,
   });
 
   function normalizePorts(value) {
@@ -27,34 +26,6 @@
     return [...new Set(entries.map(Number))]
       .filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535)
       .sort((left, right) => left - right);
-  }
-
-  function normalizePageUrl(value) {
-    if (typeof value !== "string") return null;
-    try {
-      const url = new URL(value.trim());
-      if (!["http:", "https:"].includes(url.protocol)) return null;
-      const path =
-        url.pathname.length > 1 && url.pathname.endsWith("/")
-          ? url.pathname.slice(0, -1)
-          : url.pathname;
-      return `${url.origin}${path}`;
-    } catch {
-      return null;
-    }
-  }
-
-  function normalizePageUrls(value) {
-    const entries = Array.isArray(value)
-      ? value
-      : typeof value === "string"
-        ? value.split(/\r?\n/)
-        : [];
-    return [
-      ...new Set(
-        entries.map(normalizePageUrl).filter((entry) => entry !== null),
-      ),
-    ];
   }
 
   function normalize(value) {
@@ -74,11 +45,10 @@
           ? settings.localhostEnabled
           : defaults.localhostEnabled,
       localhostPorts: normalizePorts(settings.localhostPorts),
-      pagesEnabled:
-        typeof settings.pagesEnabled === "boolean"
-          ? settings.pagesEnabled
-          : defaults.pagesEnabled,
-      pageUrls: normalizePageUrls(settings.pageUrls),
+      externalPagesEnabled:
+        typeof settings.externalPagesEnabled === "boolean"
+          ? settings.externalPagesEnabled
+          : defaults.externalPagesEnabled,
     };
   }
 
@@ -101,18 +71,15 @@
     }
     if (!["http:", "https:"].includes(url.protocol)) return false;
     const settings = normalize(settingsValue);
-    if (settings.localhostEnabled && isLocalhost(url.hostname)) {
+    if (isLocalhost(url.hostname)) {
+      if (!settings.localhostEnabled) return false;
       const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
-      if (
+      return (
         settings.localhostPorts.length === 0 ||
         settings.localhostPorts.includes(port)
-      )
-        return true;
+      );
     }
-    return (
-      settings.pagesEnabled &&
-      settings.pageUrls.includes(normalizePageUrl(url.href))
-    );
+    return settings.externalPagesEnabled;
   }
 
   globalThis.viewportDimensionsPreferences = Object.freeze({
@@ -121,7 +88,6 @@
     defaults,
     normalize,
     normalizePorts,
-    normalizePageUrls,
     isActiveUrl,
   });
 })();
