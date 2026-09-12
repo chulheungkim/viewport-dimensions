@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Viewport Dimensions</title>
+    <link rel="icon" href="icons/icon-32.png" type="image/png">
+    <link rel="stylesheet" href="popup.css">
+    <script src="preferences.js" defer></script>
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <h1>Viewport Dimensions</h1>
+    <p class="description">Width × height while you resize.</p>
+    <form id="settings">
+      <fieldset disabled>
+        <legend>Position</legend>
+        <div class="positions">
+          <label><input type="radio" name="position" value="top-left"><span>Top left</span></label>
+          <label><input type="radio" name="position" value="top-center"><span>Top center</span></label>
+          <label><input type="radio" name="position" value="top-right"><span>Top right</span></label>
+          <label><input type="radio" name="position" value="bottom-left"><span>Bottom left</span></label>
+          <label><input type="radio" name="position" value="bottom-center"><span>Bottom center</span></label>
+          <label><input type="radio" name="position" value="bottom-right"><span>Bottom right</span></label>
+        </div>
+        <label class="delay" for="hide-delay">Hide after resizing stops</label>
+        <select id="hide-delay" name="hideDelayMs">
+          <option value="1000">1 second</option>
+          <option value="2000">2 seconds</option>
+          <option value="3000">3 seconds</option>
+          <option value="5000">5 seconds</option>
+        </select>
+      </fieldset>
+    </form>
+    <p id="status" role="status">Loading settings…</p>
+  </body>
+</html>
