@@ -70,7 +70,7 @@ on the extension's card at `chrome://extensions` and refresh your website tabs.
 3. Resize the browser window on a website to see the current dimensions.
 4. Click the dimensions or press **Alt+Shift+V** to toggle the device toolbar.
    You can also choose **Open device toolbar** in the extension popup.
-5. Choose a category and device, inspect the preview, then **Apply viewport**.
+5. Choose a category and device to preview its dimensions. Double-click the device to apply it, or click **Apply viewport**.
    Use **Restore window** to return to the original window bounds.
 6. For phone and tablet widths, **Open mobile window** moves the current tab into
    a compact Chrome window and smoothly applies the selected size. Your loaded

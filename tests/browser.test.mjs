@@ -96,12 +96,12 @@ test(
         assert.ok(!exceptionDetails, JSON.stringify(exceptionDetails));
         return result.value;
       }
-      async function click(selector, kind) {
+      async function click(selector, kind, clickCount = 1) {
         const box = await inspect(
           `const e=this.querySelector(${JSON.stringify(selector)}); e.scrollIntoView({block:"nearest"}); const r=e.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2};`,
           kind,
         );
-        await page.mouse.click(box.x, box.y);
+        await page.mouse.click(box.x, box.y, { clickCount });
       }
       async function until(expression, kind) {
         for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -178,7 +178,8 @@ test(
           }),
         );
       });
-      await click("#apply");
+      assert.equal(await page.evaluate(() => innerWidth), 1500);
+      await click('.device[data-id="iphone-se"]', undefined, 2);
       await until(
         'this.querySelector(".status").textContent.includes("Viewport applied")',
       );

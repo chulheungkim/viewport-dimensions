@@ -136,6 +136,7 @@
           const button = element("button", "device");
           button.type = "button";
           button.dataset.id = device.id;
+          button.title = "Double-click to apply viewport";
           button.setAttribute("aria-pressed", String(selectedId === device.id));
           const text = element("span", "device-text");
           const size = presets.dimensions(device, rotated);
@@ -153,6 +154,10 @@
             element("span", "device-check", "✓"),
           );
           button.addEventListener("click", () => select(device.id));
+          button.addEventListener("dblclick", () => {
+            select(device.id);
+            if (!ui.apply.disabled) void apply("viewport:resize");
+          });
           button.addEventListener("focus", () => select(device.id));
           ui.list.append(button);
         }
