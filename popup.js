@@ -6,6 +6,37 @@
   const fieldset = document.querySelector("fieldset");
   const delay = document.querySelector("#hide-delay");
   const status = document.querySelector("#status");
+  const openToolbar = document.querySelector("#open-toolbar");
+  openToolbar?.addEventListener("click", async () => {
+    openToolbar.disabled = true;
+    try {
+      const result = await chrome.runtime.sendMessage({
+        type: "viewport:open-active",
+      });
+      if (!result?.ok)
+        throw new Error(result?.error || "Couldn’t open the toolbar.");
+      window.close();
+    } catch (error) {
+      status.textContent =
+        error instanceof Error
+          ? error.message
+          : "Refresh the page and try again.";
+      status.dataset.error = "true";
+      openToolbar.disabled = false;
+    }
+  });
+  chrome.commands
+    .getAll()
+    .then((commands) => {
+      const label = document.querySelector("#shortcut-label");
+      const shortcut = commands.find(
+        (command) => command.name === "toggle-toolbar",
+      )?.shortcut;
+      if (label)
+        label.textContent =
+          shortcut || "Assign a shortcut at chrome://extensions/shortcuts to";
+    })
+    .catch(() => {});
   if (
     !(form instanceof HTMLFormElement) ||
     !(fieldset instanceof HTMLFieldSetElement) ||

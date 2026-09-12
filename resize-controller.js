@@ -15,6 +15,7 @@
     let idleTimer = null;
     let removalTimer = null;
     let destroyed = false;
+    let interacting = false;
 
     function clearTimers() {
       clock.clearTimeout(idleTimer);
@@ -24,8 +25,8 @@
     }
 
     function unmount() {
-      view.unmount();
       phase = "hidden";
+      view.unmount();
       removalTimer = null;
     }
 
@@ -39,10 +40,21 @@
 
     function resetIdleTimer() {
       clock.clearTimeout(idleTimer);
-      idleTimer = clock.setTimeout(hide, currentSettings.hideDelayMs);
+      idleTimer = interacting
+        ? null
+        : clock.setTimeout(hide, currentSettings.hideDelayMs);
     }
 
     return {
+      setInteracting(value) {
+        if (destroyed || phase === "hidden") return;
+        interacting = value;
+        if (interacting) {
+          clearTimers();
+          if (phase === "exiting") view.show();
+          phase = "visible";
+        } else resetIdleTimer();
+      },
       finishExit() {
         if (destroyed || phase !== "exiting") return;
         clock.clearTimeout(removalTimer);
@@ -73,6 +85,7 @@
       },
       suspend(size) {
         if (destroyed) return;
+        interacting = false;
         clearTimers();
         unmount();
         previousSize = size;

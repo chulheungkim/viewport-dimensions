@@ -9,7 +9,8 @@
 Viewport Dimensions is a lightweight Chrome extension that shows your browser's
 viewport **width × height in CSS pixels** as you resize. A single, unobtrusive
 overlay appears in your chosen position, then smoothly disappears when you stop.
-Use it to check responsive layouts without opening DevTools.
+Click the dimensions or use a shortcut to open a device toolbar and resize the
+browser to a phone, tablet, laptop, or monitor reference size.
 
 ## Features
 
@@ -18,7 +19,16 @@ Use it to check responsive layouts without opening DevTools.
 - **Adjustable hide delay** — keep dimensions visible for 1, 2, 3, or 5 seconds after resizing.
 - **Saved preferences** — your position and delay persist across browser restarts.
 - **Subtle motion** — smooth entrance and exit, with support for reduced motion.
-- **Out of the way** — the overlay never captures clicks or keyboard focus.
+- **Device toolbar** — a compact light/dark interface with search, four categories,
+  dimension previews, phone/tablet rotation, and a legacy filter.
+- **34 device presets** — recent Apple and Samsung devices, legacy baselines,
+  and 24–32-inch monitor references with explicit scaling assumptions.
+- **Reachable widths only** — presets wider than the current display can fit are
+  omitted, accounting for browser chrome and page zoom.
+- **Apply and restore** — resize the browser, see the actual result, and restore
+  its original size and position.
+- **Keyboard access** — toggle with **Alt+Shift+V** (Option+Shift+V on Mac), or
+  click the resize badge. Escape closes the toolbar and restores keyboard focus.
 - **Local only** — no accounts, analytics, or network requests.
 
 ## Installation
@@ -52,23 +62,36 @@ on the extension's card at `chrome://extensions` and refresh your website tabs.
 2. Choose an overlay position and a hide delay. Changes save automatically and
    apply to open tabs.
 3. Resize the browser window on a website to see the current dimensions.
+4. Click the dimensions or press **Alt+Shift+V** to toggle the device toolbar.
+   You can also choose **Open device toolbar** in the extension popup.
+5. Choose a category and device, inspect the preview, then **Apply viewport**.
+   Use **Restore window** to return to the original window bounds.
+
+Change the shortcut at `chrome://extensions/shortcuts` if another extension or
+your operating system already uses it. The toolbar also supports tab navigation,
+arrow keys in categories and device lists, and Escape to close.
 
 | Setting    | Options                                                                   | Default   |
 | ---------- | ------------------------------------------------------------------------- | --------- |
 | Position   | Top left, top center, top right, bottom left, bottom center, bottom right | Top right |
 | Hide delay | 1, 2, 3, or 5 seconds                                                     | 2 seconds |
 
-The overlay stays hidden until the viewport changes size. Continued resizing
-keeps it visible; after the selected delay, it fades away and is removed from
-the page. Switching tabs also clears the overlay.
+The badge stays hidden until the viewport changes size. Continued resizing,
+hovering, or focusing it keeps it visible; after the selected delay, it fades
+away and is removed. The toolbar stays open until dismissed. Switching tabs
+clears both surfaces. Position settings apply to both the badge and toolbar.
 
 ## Privacy and permissions
 
 Viewport Dimensions makes no network requests and includes no analytics or
 tracking. It saves only your display preferences in Chrome's local extension
-storage; uninstalling the extension clears them.
+storage; uninstalling the extension clears them. Original window bounds are
+stored temporarily in session storage so Restore survives service-worker restarts.
 
 - **`storage`** saves your selected position and hide delay.
+- The service worker uses Chrome's window and tab APIs to measure and resize the
+  current window. No `debugger`, browsing-history, or additional host permission
+  is requested.
 - **HTTP and HTTPS content scripts** display the overlay on websites, including
   localhost. They run only in the top frame.
 
@@ -82,6 +105,16 @@ storage; uninstalling the extension clears them.
 - Maximizing the window, changing zoom, or resizing docked DevTools can also
   change the viewport and trigger the overlay.
 - Fullscreen content and browser top-layer dialogs may cover the overlay.
+- Exit browser fullscreen before applying a device size.
+- The list uses the current display's maximum reachable width, rather than a
+  temporarily narrowed window. Changing display or zoom refreshes it when the
+  toolbar opens or the viewport changes.
+- Device dimensions are reference targets. Desktop OS scaling and Android screen
+  zoom vary; the preview names the chosen scaling. See [device sources](DEVICE-SOURCES.md).
+- Tall devices fit to available height. Browser minimum window widths may prevent
+  exact portrait phone widths. The toolbar reports actual and requested sizes
+  when they differ. These presets test desktop layout; they do not emulate mobile
+  Safari, touch, DPR, safe areas, or user agents.
 
 ## Development
 
@@ -92,18 +125,28 @@ and reload the extension after making changes.
 Run the deterministic lifecycle and preference tests with Node.js:
 
 ```bash
-node --test tests/lifecycle.test.mjs
+node --test tests/*.test.mjs
 ```
 
-| File                                                                         | Purpose                                           |
-| ---------------------------------------------------------------------------- | ------------------------------------------------- |
-| [`manifest.json`](manifest.json)                                             | Extension metadata, permissions, and entry points |
-| [`content.js`](content.js)                                                   | Overlay rendering, motion, and page events        |
-| [`resize-controller.js`](resize-controller.js)                               | Resize lifecycle and visibility timers            |
-| [`preferences.js`](preferences.js)                                           | Defaults and saved-setting validation             |
-| [`popup.html`](popup.html), [`popup.css`](popup.css), [`popup.js`](popup.js) | Settings popup                                    |
-| [`tests/lifecycle.test.mjs`](tests/lifecycle.test.mjs)                       | Lifecycle and preference tests                    |
-| [`icons/`](icons/)                                                           | Logo and Chrome icon exports                      |
+The optional installed-extension browser suite runs when `VIEWPORT_PLAYWRIGHT`
+points to an existing Playwright package and `VIEWPORT_CHROME` points to a Chrome
+executable supporting the CDP Extensions API. It uses an isolated temporary
+profile and a local fixture, exercises the real content script and service worker,
+and leaves the user's browser profile untouched. Set `VIEWPORT_SCREENSHOTS` to
+an output directory to save light, dark, and narrow toolbar screenshots.
+
+| File                                                                               | Purpose                                               |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| [`manifest.json`](manifest.json)                                                   | Extension metadata, permissions, and entry points     |
+| [`content.js`](content.js)                                                         | Overlay rendering, motion, and page events            |
+| [`toolbar.js`](toolbar.js), [`toolbar-styles.js`](toolbar-styles.js)               | Toolbar controls, filtering, previews, and styling    |
+| [`device-presets.js`](device-presets.js), [`DEVICE-SOURCES.md`](DEVICE-SOURCES.md) | Reference catalog, filters, and provenance            |
+| [`background.js`](background.js), [`window-sizing.js`](window-sizing.js)           | Shortcut routing, resizing, restore, and reachability |
+| [`resize-controller.js`](resize-controller.js)                                     | Resize lifecycle and visibility timers                |
+| [`preferences.js`](preferences.js)                                                 | Defaults and saved-setting validation                 |
+| [`popup.html`](popup.html), [`popup.css`](popup.css), [`popup.js`](popup.js)       | Settings popup                                        |
+| [`tests/lifecycle.test.mjs`](tests/lifecycle.test.mjs)                             | Lifecycle and preference tests                        |
+| [`icons/`](icons/)                                                                 | Logo and Chrome icon exports                          |
 
 The overlay uses Shadow DOM to isolate its styles from the page. Its lifecycle
 handles resizing during an exit, tab suspension, and reduced motion without

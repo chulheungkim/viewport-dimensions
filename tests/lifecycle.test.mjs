@@ -204,6 +204,29 @@ test("destroy stops future resize activity", () => {
   assert.equal(h.count("hide"), 0);
 });
 
+test("hover or keyboard interaction holds the badge and reverses an in-progress exit", () => {
+  const h = setup();
+  h.controller.resize({ width: 900, height: 800 });
+  h.clock.advance(2001);
+  h.controller.setInteracting(true);
+  h.clock.advance(10000);
+  assert.equal(h.count("unmount"), 0);
+  assert.equal(h.count("show"), 2);
+  h.controller.setInteracting(false);
+  h.clock.advance(2160);
+  assert.equal(h.count("unmount"), 1);
+});
+
+test("opening the toolbar cancels a held badge and the next badge still auto-hides", () => {
+  const h = setup();
+  h.controller.resize({ width: 900, height: 800 });
+  h.controller.setInteracting(true);
+  h.controller.suspend({ width: 900, height: 800 });
+  h.controller.resize({ width: 899, height: 800 });
+  h.clock.advance(2160);
+  assert.equal(h.count("unmount"), 2);
+});
+
 test("only six positions are valid, and corrupt stored values fall back safely", () => {
   const preferences = context.viewportDimensionsPreferences;
   assert.equal(preferences.positions.length, 6);
