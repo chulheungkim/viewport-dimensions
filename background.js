@@ -1,10 +1,12 @@
 "use strict";
 
-importScripts("device-presets.js", "window-sizing.js");
+importScripts("device-presets.js", "window-sizing.js", "window-motion.js");
 const busyWindows = new Set();
 const sizing = globalThis.viewportWindowSizing;
 const presets = globalThis.viewportDevicePresets;
+const motion = globalThis.viewportWindowMotion;
 const originalKey = (id) => `viewport-original-${id}`;
+const mobileKey = (id) => `viewport-mobile-${id}`;
 
 async function current(tab) {
   const [window, metrics, zoom] = await Promise.all([
@@ -24,14 +26,18 @@ async function current(tab) {
 async function state(tab) {
   const { window, metrics, zoom } = await current(tab);
   const [stored, commands] = await Promise.all([
-    chrome.storage.session.get(originalKey(window.id)),
+    chrome.storage.session.get([originalKey(window.id), mobileKey(tab.id)]),
     chrome.commands.getAll(),
   ]);
   return {
     ok: true,
     current: { width: metrics.width, height: metrics.height },
     available: sizing.capacity(window, metrics, zoom),
-    canRestore: Boolean(stored[originalKey(window.id)]),
+    canRestore: Boolean(
+      stored[originalKey(window.id)] || stored[mobileKey(tab.id)],
+    ),
+    isMobilePreview: Boolean(stored[mobileKey(tab.id)]),
+    windowType: window.type,
     fullscreen: window.state === "fullscreen",
     shortcut:
       commands.find((command) => command.name === "toggle-toolbar")?.shortcut ||
@@ -71,7 +77,14 @@ async function resize(tab, message) {
       context.zoom,
       target,
     );
-    await chrome.windows.update(tab.windowId, next);
+    if (attempt === 0) {
+      await motion.animate({
+        from: context.window,
+        to: next,
+        reducedMotion: context.metrics.reducedMotion,
+        update: (bounds) => chrome.windows.update(tab.windowId, bounds),
+      });
+    } else await chrome.windows.update(tab.windowId, next);
     await new Promise((resolve) => setTimeout(resolve, 150));
     const measured = await current(tab);
     const matches =
@@ -87,17 +100,29 @@ async function resize(tab, message) {
 }
 
 async function restore(tab) {
+  const mobile = (await chrome.storage.session.get(mobileKey(tab.id)))[
+    mobileKey(tab.id)
+  ];
+  if (mobile) return returnToBrowser(tab, mobile);
   const key = originalKey(tab.windowId);
   const stored = (await chrome.storage.session.get(key))[key];
   if (stored) {
-    const window = await chrome.windows.get(tab.windowId);
-    if (window.state !== "normal")
+    let context = await current(tab);
+    if (context.window.state !== "normal") {
       await chrome.windows.update(tab.windowId, { state: "normal" });
-    await chrome.windows.update(tab.windowId, {
-      left: stored.left,
-      top: stored.top,
-      width: stored.width,
-      height: stored.height,
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      context = await current(tab);
+    }
+    await motion.animate({
+      from: context.window,
+      to: {
+        left: stored.left,
+        top: stored.top,
+        width: stored.width,
+        height: stored.height,
+      },
+      reducedMotion: context.metrics.reducedMotion,
+      update: (bounds) => chrome.windows.update(tab.windowId, bounds),
     });
     if (stored.state === "maximized")
       await chrome.windows.update(tab.windowId, { state: "maximized" });
@@ -105,6 +130,123 @@ async function restore(tab) {
   }
   await new Promise((resolve) => setTimeout(resolve, 150));
   return state(tab);
+}
+
+async function openMobile(tab, message) {
+  const device = presets.devices.find((entry) => entry.id === message.deviceId);
+  if (
+    !device ||
+    !["phone", "tablet"].includes(device.type) ||
+    typeof message.rotated !== "boolean"
+  )
+    throw new Error("Choose a phone or tablet for the mobile window.");
+  const context = await current(tab);
+  if (context.window.state === "fullscreen")
+    throw new Error("Exit fullscreen to open a mobile window.");
+  sizing.bounds(
+    context.window,
+    context.metrics,
+    context.zoom,
+    presets.dimensions(device, message.rotated),
+  );
+  if (context.window.type === "popup") return resize(tab, message);
+  const stored = await chrome.storage.session.get([
+    originalKey(tab.windowId),
+    mobileKey(tab.id),
+  ]);
+  if (!stored[mobileKey(tab.id)]) {
+    const { left, top, width, height, state } = context.window;
+    await chrome.storage.session.set({
+      [mobileKey(tab.id)]: {
+        windowId: tab.windowId,
+        index: tab.index,
+        incognito: context.window.incognito,
+        bounds: stored[originalKey(tab.windowId)] || {
+          left,
+          top,
+          width,
+          height,
+          state,
+        },
+      },
+    });
+  }
+  // Moving the live tab keeps navigation, forms and JS state. If it was the
+  // original window's last tab Chrome closes that window; Return recreates it.
+  const popup = await chrome.windows.create({
+    tabId: tab.id,
+    type: "popup",
+    incognito: context.window.incognito,
+    focused: true,
+    left: context.window.left,
+    top: context.window.top,
+    width: context.window.width,
+    height: context.window.height,
+  });
+  if (!Number.isInteger(popup?.id))
+    throw new Error(
+      "Couldn’t open a mobile window. Use Restore to return to the browser.",
+    );
+  busyWindows.add(popup.id);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return await resize(await chrome.tabs.get(tab.id), message);
+  } finally {
+    busyWindows.delete(popup.id);
+  }
+}
+
+async function returnToBrowser(tab, mobile) {
+  let destination = await chrome.windows.get(mobile.windowId).catch(() => null);
+  if (
+    destination &&
+    destination.id !== tab.windowId &&
+    busyWindows.has(destination.id)
+  )
+    throw new Error(
+      "The original browser window is resizing. Try again in a moment.",
+    );
+  let lockedId = null;
+  try {
+    if (destination) {
+      if (destination.id !== tab.windowId) {
+        lockedId = destination.id;
+        busyWindows.add(lockedId);
+        await chrome.tabs.move(tab.id, {
+          windowId: destination.id,
+          index: mobile.index,
+        });
+      }
+    } else {
+      destination = await chrome.windows.create({
+        tabId: tab.id,
+        type: "normal",
+        incognito: mobile.incognito,
+        focused: true,
+        left: mobile.bounds.left,
+        top: mobile.bounds.top,
+        width: mobile.bounds.width,
+        height: mobile.bounds.height,
+      });
+      if (!Number.isInteger(destination?.id))
+        throw new Error("Couldn’t restore the browser window.");
+      lockedId = destination.id;
+      busyWindows.add(lockedId);
+    }
+    // Save recovery bounds before removing the mobile record, so a failed
+    // native restore remains recoverable after moving the tab back.
+    await chrome.storage.session.set({
+      [originalKey(destination.id)]: mobile.bounds,
+    });
+    await chrome.storage.session.remove(mobileKey(tab.id));
+    await chrome.tabs.update(tab.id, { active: true });
+    await chrome.windows.update(destination.id, { focused: true });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const result = await restore(await chrome.tabs.get(tab.id));
+    return { ...result, returnedToBrowser: true };
+  } finally {
+    if (lockedId !== null) busyWindows.delete(lockedId);
+  }
 }
 
 async function toggleActive() {
@@ -147,6 +289,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     "viewport:state": state,
     "viewport:resize": resize,
     "viewport:restore": restore,
+    "viewport:mobile": openMobile,
   };
   if (
     !Object.hasOwn(actions, message.type) ||
@@ -182,6 +325,10 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
 
 chrome.windows.onRemoved.addListener((id) => {
   void chrome.storage.session.remove(originalKey(id)).catch(() => {});
+});
+
+chrome.tabs.onRemoved.addListener((id) => {
+  void chrome.storage.session.remove(mobileKey(id)).catch(() => {});
 });
 
 // Moving a window between displays need not resize the page. Refresh capacity

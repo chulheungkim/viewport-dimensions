@@ -212,6 +212,7 @@
         availHeight: screen.availHeight,
         availLeft: screen.availLeft ?? 0,
         availTop: screen.availTop ?? 0,
+        reducedMotion: reducedMotion.matches,
       });
     }
   }

@@ -5,6 +5,7 @@
     return (
       value &&
       typeof value === "object" &&
+      typeof value.reducedMotion === "boolean" &&
       ["width", "height", "availWidth", "availHeight"].every(
         (key) =>
           Number.isFinite(value[key]) && value[key] > 0 && value[key] <= 100000,

@@ -27,6 +27,12 @@ browser to a phone, tablet, laptop, or monitor reference size.
   omitted, accounting for browser chrome and page zoom.
 - **Apply and restore** — resize the browser, see the actual result, and restore
   its original size and position.
+- **Smooth resizing** — Apply and Restore ease between window sizes over roughly
+  300 ms. Reduced-motion preferences use an immediate resize instead. Native
+  window-manager limits still apply; small accuracy corrections are immediate.
+- **Mobile windows** — open the current tab in a compact window to reach mobile
+  widths below the normal browser-window minimum, without reloading the page or
+  adding permissions. Return the tab to the original browser when finished.
 - **Keyboard access** — toggle with **Alt+Shift+V** (Option+Shift+V on Mac), or
   click the resize badge. Escape closes the toolbar and restores keyboard focus.
 - **Local only** — no accounts, analytics, or network requests.
@@ -66,6 +72,12 @@ on the extension's card at `chrome://extensions` and refresh your website tabs.
    You can also choose **Open device toolbar** in the extension popup.
 5. Choose a category and device, inspect the preview, then **Apply viewport**.
    Use **Restore window** to return to the original window bounds.
+6. For phone and tablet widths, **Open mobile window** moves the current tab into
+   a compact Chrome window and smoothly applies the selected size. Your loaded
+   page, form values, and navigation remain intact. Open the toolbar there and use
+   **Return to browser** to move the tab back to its original position and restore
+   the original window bounds. If Chrome closed the original window because this
+   was its last tab, a normal window is recreated when returning.
 
 Change the shortcut at `chrome://extensions/shortcuts` if another extension or
 your operating system already uses it. The toolbar also supports tab navigation,
@@ -87,6 +99,9 @@ Viewport Dimensions makes no network requests and includes no analytics or
 tracking. It saves only your display preferences in Chrome's local extension
 storage; uninstalling the extension clears them. Original window bounds are
 stored temporarily in session storage so Restore survives service-worker restarts.
+Mobile preview return locations also live in session storage and are removed
+when returning or closing the tab. Closing a mobile window closes its tab, just
+like closing a normal browser window; use **Return to browser** to keep it open.
 
 - **`storage`** saves your selected position and hide delay.
 - The service worker uses Chrome's window and tab APIs to measure and resize the
@@ -112,9 +127,13 @@ stored temporarily in session storage so Restore survives service-worker restart
 - Device dimensions are reference targets. Desktop OS scaling and Android screen
   zoom vary; the preview names the chosen scaling. See [device sources](DEVICE-SOURCES.md).
 - Tall devices fit to available height. Browser minimum window widths may prevent
-  exact portrait phone widths. The toolbar reports actual and requested sizes
+  exact portrait phone widths in a normal window; use **Open mobile window** for
+  a compact window without the normal tab strip. The toolbar reports actual and requested sizes
   when they differ. These presets test desktop layout; they do not emulate mobile
   Safari, touch, DPR, safe areas, or user agents.
+- Smooth resizing uses sequential native window updates, so its frame rate depends
+  on Chrome, the OS, and page performance. Maximizing/restoring the OS window state
+  remains controlled by the window manager.
 
 ## Development
 

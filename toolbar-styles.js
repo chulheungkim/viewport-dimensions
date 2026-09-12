@@ -91,6 +91,8 @@
     .apply { border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: var(--surface); padding: 8px 13px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 10px; min-height: 34px; }
     .apply:hover:not(:disabled) { filter: brightness(1.1); }
     .apply svg { width: 14px; height: 14px; }
+    .mobile-action { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--accent); font-size: 11px; padding: 7px 10px; margin-top: 9px; }
+    .mobile-action:hover:not(:disabled) { background: var(--selected); }
     .status { margin: 10px 0 0; color: var(--muted); font-size: 10px; min-height: 15px; }
     .status[data-error="true"] { color: light-dark(#a33d32, #f6a395); }
     .footnote { display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding: 9px 18px; font-size: 9px; color: var(--muted); background: var(--soft); flex-shrink: 0; }

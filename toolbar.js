@@ -64,6 +64,11 @@
       ui.rotate.setAttribute("aria-pressed", String(rotated));
       ui.apply.disabled = busy || !device || !state || state.fullscreen;
       ui.restore.disabled = busy || !state?.canRestore;
+      ui.restore.querySelector("span").textContent = state?.isMobilePreview
+        ? "Return to browser"
+        : "Restore window";
+      ui.mobile.hidden = !rotatable || !state || state.windowType !== "normal";
+      ui.mobile.disabled = busy || !device || state?.fullscreen;
       ui.applyText.textContent = busy ? "Resizing…" : "Apply viewport";
       ui.drawing.hidden = !device;
       ui.previewSize.textContent = device
@@ -113,7 +118,7 @@
         legacyOnly,
         rotated,
       });
-      if (!devices.some((device) => device.id === selectedId))
+      if (state && !devices.some((device) => device.id === selectedId))
         selectedId = devices[0]?.id || null;
       const scrollTop = ui.list.scrollTop;
       ui.list.replaceChildren();
@@ -208,7 +213,7 @@
       }
     }
     async function apply(type) {
-      if (busy || (type === "viewport:resize" && !selected())) return;
+      if (busy || (type !== "viewport:restore" && !selected())) return;
       busy = true;
       const request = ++revision;
       updatePreview();
@@ -228,7 +233,10 @@
           throw new Error(next?.error || "Couldn’t resize the window.");
         updateState(next);
         const actual = `${next.current.width} × ${next.current.height}`;
-        if (!next.target) status(`Original window restored · ${actual} px.`);
+        if (next.returnedToBrowser)
+          status(`Returned to browser · ${actual} px.`);
+        else if (!next.target)
+          status(`Original window restored · ${actual} px.`);
         else if (
           next.current.width === next.target.width &&
           next.current.height === next.target.height
@@ -322,6 +330,15 @@
         <div class="bottom"><div class="actions"><button class="restore" id="restore"><span>Restore window</span></button><button class="apply" id="apply"><span id="apply-text">Apply viewport</span></button></div><p class="status" role="status" aria-live="polite">Choose a device to preview its dimensions.</p></div>
         <footer class="footnote"><span id="count"></span><span class="shortcut"><kbd id="shortcut"></kbd> to toggle</span></footer>`;
       const find = (selector) => panel.querySelector(selector);
+      const mobileButton = element(
+        "button",
+        "mobile-action",
+        "Open mobile window ↗",
+      );
+      mobileButton.id = "mobile";
+      mobileButton.title =
+        "Move this tab into a compact window for mobile widths. Your page stays loaded.";
+      find(".bottom").insertBefore(mobileButton, find(".status"));
       ui = {
         panel,
         list: find(".list"),
@@ -337,6 +354,7 @@
         apply: find("#apply"),
         applyText: find("#apply-text"),
         restore: find("#restore"),
+        mobile: mobileButton,
         status: find(".status"),
         count: find("#count"),
         shortcut: find("#shortcut"),
@@ -422,6 +440,7 @@
       });
       find("#close").addEventListener("click", () => close());
       ui.apply.addEventListener("click", () => void apply("viewport:resize"));
+      ui.mobile.addEventListener("click", () => void apply("viewport:mobile"));
       ui.restore.addEventListener(
         "click",
         () => void apply("viewport:restore"),

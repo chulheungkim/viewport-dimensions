@@ -79,6 +79,7 @@ const metrics = {
   availHeight: 1000,
   availLeft: 0,
   availTop: 0,
+  reducedMotion: false,
 };
 
 test("reachability accounts for page zoom and docked chrome without depending on selected width", () => {

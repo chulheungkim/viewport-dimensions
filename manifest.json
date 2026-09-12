@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Viewport Dimensions",
-  "version": "0.3.0",
-  "description": "Live viewport dimensions and a device toolbar with phone, tablet, laptop, and monitor presets for responsive testing.",
+  "version": "0.4.0",
+  "description": "Live viewport dimensions, smooth resizing, and mobile preview windows with phone, tablet, laptop, and monitor presets.",
   "permissions": ["storage"],
   "background": { "service_worker": "background.js" },
   "commands": {

@@ -53,7 +53,10 @@ test(
         (await context.waitForEvent("serviceworker"));
       async function toggle() {
         await worker.evaluate(async () => {
-          const tabs = await chrome.tabs.query({ active: true });
+          const tabs = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
           const tab = tabs.find(
             (entry) => !entry.url?.startsWith("chrome-extension:"),
           );
@@ -166,6 +169,15 @@ test(
         ),
         "667 × 375",
       );
+      await page.evaluate(() => {
+        window.viewportMotionFrames = [];
+        addEventListener("resize", () =>
+          window.viewportMotionFrames.push({
+            width: innerWidth,
+            height: innerHeight,
+          }),
+        );
+      });
       await click("#apply");
       await until(
         'this.querySelector(".status").textContent.includes("Viewport applied")',
@@ -174,14 +186,30 @@ test(
         await page.evaluate(() => ({ width: innerWidth, height: innerHeight })),
         { width: 667, height: 375 },
       );
+      const motionFrames = await page.evaluate(
+        () => window.viewportMotionFrames,
+      );
+      assert.ok(
+        motionFrames.some((frame) => frame.width > 667 && frame.width < 1500),
+        "Apply must render intermediate viewport sizes",
+      );
       assert.equal(
         await page.locator("[data-viewport-dimensions-overlay]").count(),
         0,
       );
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.evaluate(() => {
+        window.viewportMotionFrames = [];
+      });
       await click("#restore");
       await until(
         'this.querySelector(".status").textContent.includes("Original window restored")',
       );
+      assert.ok(
+        (await page.evaluate(() => window.viewportMotionFrames)).length <= 2,
+        "Reduced motion must skip intermediate sizes",
+      );
+      await page.emulateMedia({ reducedMotion: "no-preference" });
       await click(".tab:nth-child(4)");
       const deviceWidths = await inspect(
         'return [...this.querySelectorAll(".device-size")].map(e=>parseInt(e.textContent));',
@@ -243,6 +271,51 @@ test(
       await until(
         'this.querySelector(".status").textContent.includes("Original window restored")',
       );
+      await page.evaluate(() => {
+        window.mobileStateMarker = "keep this loaded page";
+      });
+      await click("#mobile");
+      await page.waitForFunction(
+        () => innerWidth === 375 && innerHeight === 667,
+      );
+      await page.waitForTimeout(250);
+      assert.equal(
+        await page.evaluate(() => window.mobileStateMarker),
+        "keep this loaded page",
+      );
+      assert.notEqual(
+        (await cdp.send("Browser.getWindowForTarget")).windowId,
+        windowId,
+      );
+      if (
+        (await page.locator("[data-viewport-dimensions-toolbar]").count()) === 0
+      )
+        await toggle();
+      await until(
+        '!this.querySelector("#restore").disabled && this.querySelector("#restore").textContent.includes("Return to browser")',
+      );
+      if (screenshotDir) {
+        const screenshot = await cdp.send("Page.captureScreenshot", {
+          format: "png",
+          captureBeyondViewport: false,
+        });
+        await writeFile(
+          `${screenshotDir}/toolbar-mobile.png`,
+          Buffer.from(screenshot.data, "base64"),
+        );
+      }
+      await click("#restore");
+      await page.waitForFunction(() => innerWidth === 900);
+      await page.waitForTimeout(250);
+      assert.equal(
+        (await cdp.send("Browser.getWindowForTarget")).windowId,
+        windowId,
+      );
+      if (
+        (await page.locator("[data-viewport-dimensions-toolbar]").count()) === 0
+      )
+        await toggle();
+      await until('!this.querySelector("#apply").disabled');
       await browserCDP.send("Browser.setWindowBounds", {
         windowId,
         bounds: { width: 350, height: 700 },
@@ -295,6 +368,74 @@ test(
         state: "detached",
         timeout: 4000,
       });
+      // The source window may have only one tab. It then closes when the tab
+      // enters the popup; Return must recreate a normal window without reload.
+      const soloWindow = await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        return chrome.windows.create({
+          tabId: tab.id,
+          type: "normal",
+          width: 1000,
+          height: 900,
+          focused: true,
+        });
+      });
+      await page.waitForTimeout(200);
+      await toggle();
+      await until('!this.querySelector("#mobile").disabled');
+      assert.equal(
+        await inspect(
+          'return this.querySelector(".preview-name").textContent;',
+        ),
+        "iPhone SE",
+        "Reopening must preserve the selected device",
+      );
+      await click("#mobile");
+      await page.waitForFunction(
+        () => innerWidth === 375 && innerHeight === 667,
+      );
+      await page.waitForTimeout(250);
+      assert.equal(
+        await worker.evaluate(
+          async (id) =>
+            chrome.windows.get(id).then(
+              () => false,
+              () => true,
+            ),
+          soloWindow.id,
+        ),
+        true,
+      );
+      if (
+        (await page.locator("[data-viewport-dimensions-toolbar]").count()) === 0
+      )
+        await toggle();
+      await until('!this.querySelector("#restore").disabled');
+      await click("#restore");
+      await page.waitForFunction(() => innerWidth > 500);
+      await page.waitForTimeout(550);
+      assert.equal(
+        await page.evaluate(() => window.mobileStateMarker),
+        "keep this loaded page",
+      );
+      const returnState = await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const window = await chrome.windows.get(tab.windowId);
+        const storage = await chrome.storage.session.get(null);
+        return {
+          type: window.type,
+          mobileRecords: Object.keys(storage).filter((key) =>
+            key.startsWith("viewport-mobile-"),
+          ).length,
+        };
+      });
+      assert.deepEqual(returnState, { type: "normal", mobileRecords: 0 });
       assert.deepEqual(errors, []);
     } finally {
       await browser.close();

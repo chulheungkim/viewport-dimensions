@@ -73,6 +73,13 @@ available display height, disclosed in the preview before applying. Every resize
 is measured again, and any OS/browser minimum size or height cap is reported as
 actual versus requested dimensions. A clamped result is never an exact match.
 
+For mobile widths below Chrome's normal-window minimum, **Open mobile window**
+uses Chrome's [popup window type](https://developer.chrome.com/docs/extensions/reference/api/windows)
+and moves the existing tab with its loaded page intact. A 375 × 667 CSS viewport
+is covered by the installed-extension browser test, including returning to an
+existing window and recreating the original window when its last tab moved out.
+This is viewport sizing in desktop Chrome, not device or mobile-browser emulation.
+
 To refresh the catalog, update `device-presets.js`, verify source and scaling
 assumptions here, and run the device and browser tests. No catalog downloads or
 network calls occur during extension use.
